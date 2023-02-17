@@ -1,4 +1,5 @@
 import os
+from radiance_data import RadianceData
 
 
 def hdrgen(path_to_images, path_to_camera):
@@ -21,8 +22,25 @@ def pcomb(cal_file, step):
   return ("pcomb -f {} Intermediate/output{}.hdr > Intermediate/output{}.hdr"
           .format(cal_file, step - 1, step))
 
-def radiance_pipeline(xres, yres, diameter, xleft, ydown, vv, vh, targetx, targety):
-  test_mode = True
+def radiance_pipeline(rd):
+
+  diameter         = rd.diameter
+  xleft            = rd.xleft
+  ydown            = rd.ydown
+  vv               = rd.vv
+  vh               = rd.vh
+  targetx          = rd.targetx
+  targety          = rd.targety
+  paths_ldr        = rd.paths_ldr
+  path_temp        = rd.path_temp
+  path_rsp_fn      = rd.path_rsp_fn
+  path_vignetting  = rd.path_vignetting
+  path_fisheye     = rd.path_fisheye
+  path_ndfilter    = rd.path_ndfilter
+  path_calfact     = rd.path_calfact
+
+
+  test_mode = False
 
   if test_mode:
     os.system("mv Intermediate/output1.hdr /tmp")
@@ -32,8 +50,8 @@ def radiance_pipeline(xres, yres, diameter, xleft, ydown, vv, vh, targetx, targe
     os.system("rm Intermediate/*")
 
     # Merging of exposures 
-    os.system(hdrgen("Inputs/LDRImages/*.JPG", 
-                     "Inputs/Parameters/.rsp"))
+    os.system(hdrgen(" ".join(paths_ldr), 
+                     path_rsp_fn))
 
   # Nullifcation of exposure value
   os.system("ra_xyze -r -o Intermediate/output1.hdr > Intermediate/output2.hdr")
@@ -76,16 +94,24 @@ def radiance_pipeline(xres, yres, diameter, xleft, ydown, vv, vh, targetx, targe
 
 
 def main():
-  xres = 5616
-  yres = 3744
-  diameter = 3612
-  xleft = 1019
-  ydown = 74
-  vv = 186
-  vh = 186
-  targetx = 1000
-  targety = 1000
-  radiance_pipeline(xres, yres, diameter, xleft, ydown, vv, vh, targetx, targety)
+  rd = RadianceData(
+  diameter = 3612,
+  xleft = 1019,
+  ydown = 74,
+  vv = 186,
+  vh = 186,
+  targetx = 1000,
+  targety = 1000,
+  paths_ldr = ["Inputs/LDRImages/*.JPG"],
+  path_temp = "Intermediate/",
+  path_rsp_fn = "Inputs/Parameters/Response_function.rsp",
+  path_vignetting = "",
+  path_fisheye = "",
+  path_ndfilter = "",
+  path_calfact = ""
+  )
+
+  radiance_pipeline(rd)
   
 
 if __name__ == "__main__":
