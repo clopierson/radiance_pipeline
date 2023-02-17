@@ -1,4 +1,5 @@
 import os
+rp = __import__(__name__)
 from radiance_data import RadianceData
 
 
