@@ -1,12 +1,12 @@
 class RadianceData:
   def __init__(self, 
           diameter,
-          xleft,
-          ydown,
-          vv,
-          vh,
-          targetx,
-          targety,
+          crop_x_left,
+          crop_y_down,
+          view_angle_vertical,
+          view_angle_horizontal,
+          target_x_resolution,
+          target_y_resolution,
           paths_ldr,
           path_temp,
           path_rsp_fn,
@@ -15,12 +15,12 @@ class RadianceData:
           path_ndfilter,
           path_calfact):
             self.diameter         = diameter
-            self.xleft            = xleft
-            self.ydown            = ydown
-            self.vv               = vv
-            self.vh               = vh
-            self.targetx          = targetx
-            self.targety          = targety
+            self.crop_x_left            = crop_x_left
+            self.crop_y_down            = crop_y_down
+            self.view_angle_vertical               = view_angle_vertical
+            self.view_angle_horizontal               = view_angle_horizontal
+            self.target_x_resolution          = target_x_resolution
+            self.target_y_resolution          = target_y_resolution
             self.paths_ldr        = paths_ldr
             self.path_temp        = path_temp
             self.path_rsp_fn      = path_rsp_fn
