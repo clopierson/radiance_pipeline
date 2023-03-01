@@ -11,8 +11,8 @@ def hdrgen(path_to_images, path_to_camera, rd):
             .format(path_to_images, rd.path_temp, path_to_camera))
 
 def pcompos(rd, step):
-  return ("pcompos -x {x} -y {y} Intermediate/output{pstep}.hdr -{crop_x_left} -{crop_y_down} > \
-  Intermediate/output{step}.hdr".format(x=rd.diameter, y=rd.diameter, crop_x_left=rd.crop_x_left, crop_y_down=rd.crop_y_down, 
+  return ("pcompos -x {x} -y {y} {temp}/output{pstep}.hdr -{crop_x_left} -{crop_y_down} > \
+  Intermediate/output{step}.hdr".format(x=rd.diameter, y=rd.diameter, temp=rd.path_temp, crop_x_left=rd.crop_x_left, crop_y_down=rd.crop_y_down, 
                                         pstep = step - 1, step = step))
 
 def pfilt(rd, step):
@@ -95,7 +95,7 @@ def radiance_pipeline(rd):
                      step=header_step+1))
   
   # Validity check
-  os.system("evalglare -V Intermediate/output10.hdr")
+  os.system(f"evalglare -V {rd.path_path}/output10.hdr")
 
 
 def main():
