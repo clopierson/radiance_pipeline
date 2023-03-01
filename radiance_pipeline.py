@@ -95,7 +95,7 @@ def radiance_pipeline(rd):
                      step=header_step+1))
   
   # Validity check
-  os.system(f"evalglare -V {rd.path_path}/output10.hdr")
+  os.system(f"evalglare -V {rd.path_temp}/output10.hdr")
 
 
 def main():
