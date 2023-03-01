@@ -13,7 +13,7 @@ def hdrgen(path_to_images, path_to_camera, rd):
 def pcompos(rd, step):
   return ("pcompos -x {x} -y {y} {temp}/output{pstep}.hdr -{crop_x_left} -{crop_y_down} > \
           {temp}/output{step}.hdr".format(x=rd.diameter, y=rd.diameter, temp=rd.path_temp, crop_x_left=rd.crop_x_left, crop_y_down=rd.crop_y_down, 
-                                        pstep = step - 1, temp=rd.path_temp, step = step))
+                                        pstep = step - 1, step = step))
 
 def pfilt(rd, step):
   return ("pfilt -1 -x {} -y {} {}/output{}.hdr > {}/output{}.hdr"
