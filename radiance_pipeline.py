@@ -3,121 +3,65 @@ rp = __import__(__name__)
 from radiance_pipeline.radiance_data import RadianceData
 
 
-def hdrgen(path_to_images, path_to_camera, rd):
-# in    path_to_images    string with <location to images>/*.JPG
-#       path_to_camera    string with <location to camera>/camera.rsp
-# out   creates file output1.hdr
-  return ("hdrgen {} -o {}/output1.hdr -r {} -a -e -f -g"
-            .format(path_to_images, rd.path_temp, path_to_camera))
-
-def pcompos(rd, step):
-  return ("pcompos -x {x} -y {y} {temp}/output{pstep}.hdr -{crop_x_left} -{crop_y_down} > \
-          {temp}/output{step}.hdr".format(x=rd.diameter, y=rd.diameter, temp=rd.path_temp, crop_x_left=rd.crop_x_left, crop_y_down=rd.crop_y_down, 
-                                        pstep = step - 1, step = step))
-
-def pfilt(rd, step):
-  return ("pfilt -1 -x {} -y {} {}/output{}.hdr > {}/output{}.hdr"
-            .format(rd.target_x_resolution, rd.target_y_resolution, rd.path_temp, step - 1, rd.path_temp, step))
-
-def pcomb(cal_file, rd, step):
-  return ("pcomb -f {} {}/output{}.hdr > {}/output{}.hdr"
-          .format(cal_file, rd.path_temp, step - 1, rd.path_temp, step))
-
 def radiance_pipeline(rd):
-
-  diameter         = rd.diameter
-  crop_x_left            = rd.crop_x_left
-  crop_y_down            = rd.crop_y_down
-  view_angle_vertical               = rd.view_angle_vertical
-  view_angle_horizontal               = rd.view_angle_horizontal
-  target_x_resolution          = rd.target_x_resolution
-  target_y_resolution          = rd.target_y_resolution 
-  paths_ldr        = rd.paths_ldr
-  path_temp        = rd.path_temp
-  path_rsp_fn      = rd.path_rsp_fn
-  path_vignetting  = rd.path_vignetting
-  path_fisheye     = rd.path_fisheye
-  path_ndfilter    = rd.path_ndfilter
-  path_calfact     = rd.path_calfact
-
-
   test_mode = False
 
-  # Disable merge
   if test_mode:
-    os.system(f"mv {path_temp}/output1.hdr /tmp")
-    os.system(f"rm {path_temp}/*")
-    os.system(f"mv /tmp/output1.hdr {rd.path_temp}/")
+    # Disable merge, since it can take a while
+    os.system(f"mv {rd.path_temp}/output1.hdr /tmp")
+    os.system(f"rm {rd.path_temp}/*")
+    os.system(f"mv /tmp/output1.hdr {rd.rd.path_temp}/")
   
   # Not testing
   else:
-    os.system(f"rm {path_temp}/*")
+    # Clear temp
+    os.system(f"rm {rd.path_temp}/*")
 
     # Merging of exposures 
-    os.system(hdrgen(" ".join(paths_ldr), path_rsp_fn, rd))
+    os.system(f"hdrgen {' '.join(rd.paths_ldr)} -o {rd.path_temp}/output1.hdr"
+              f" -r {rd.path_rsp_fn} -a -e -f -g")
 
   # Nullifcation of exposure value
   os.system(f"ra_xyze -r -o {rd.path_temp}/output1.hdr > {rd.path_temp}/output2.hdr")
 
 
   # Cropping and resizing
-  os.system(pcompos(rd, 3))
+  os.system(f"pcompos -x {rd.diameter} -y {rd.diameter} {rd.path_temp}/output2.hdr "
+            f"-{rd.crop_x_left} -{rd.crop_y_down}, > {rd.path_temp}/output3.hdr")
 
   # Vignetting correction
-  os.system(pcomb(rd.path_vignetting, rd, 4))
+  os.system(f"pcomb -f {rd.path_vignetting} {rd.path_temp}/output3.hdr > "
+            f"{rd.path_temp}/output4.hdr")
 
   # Crop
-  os.system(pfilt(rd, 5))
+  os.system(f"pfilt -1 -x {rd.target_x_resolution} -y {rd.target_y_resolution} "
+            f"{rd.path_temp}/output4.hdr "
+            f"> {rd.path_temp}/output5.hdr")
 
   # Projection adjustment
-  os.system(pcomb(rd.path_fisheye, rd, 6))
+  os.system(f"pcomb -f {rd.path_fisheye} {rd.path_temp}/output5.hdr > "
+            f"{rd.path_temp}/output6.hdr")
 
 
   # ND Filter correction
-  os.system(pcomb(rd.path_ndfilter, rd, 7))
+  os.system(f"pcomb -f {rd.path_ndfilter} {rd.path_temp}/output6.hdr > "
+            f"{rd.path_temp}/output7.hdr")
 
   # Photometric adjustment
-  # os.system(pcomb("Inputs/Parameters/CF_f5d6.cal", 8))
   os.system(f"pcomb -h -f {rd.path_calfact} {rd.path_temp}/output7.hdr > {rd.path_temp}"
              "/output8.hdr")
 
   # HDR image header editing
-  header_step = 9
-  os.system("(getinfo < {temp}/output{pstep}.hdr  \
-             | sed \"/VIEW/d\" && getinfo - < {temp}/output{pstep}.hdr) \
-             > {temp}/output{step}.hdr"
-             .format(temp=rd.path_temp, pstep=header_step - 1, step=header_step))
+  os.system(f"(getinfo < {rd.path_temp}/output8.hdr"
+            f"| sed \"/VIEW/d\" && getinfo - < {rd.path_temp}/output8.hdr)"
+            f" > {rd.path_temp}/output9.hdr")
 
-  os.system("getinfo -a \"VIEW = -vta -view_angle_vertical {view_angle_vertical} -view_angle_horizontal {view_angle_horizontal}\" \
-             < {temp}/output{pstep}.hdr > \
-             {temp}/output{step}.hdr"
-             .format(temp=rd.path_temp, view_angle_vertical=view_angle_vertical, view_angle_horizontal=view_angle_horizontal, pstep=header_step, 
-                     step=header_step+1))
+  os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {rd.view_angle_vertical} "
+            f"-view_angle_horizontal {rd.view_angle_horizontal}\" "
+            f"< {rd.path_temp}/output9.hdr > "
+            f"{rd.path_temp}/output10.hdr")
   
   # Validity check
   os.system(f"evalglare -V {rd.path_temp}/output10.hdr")
 
 
-def main():
-  rd = RadianceData(
-  diameter = 3612,
-  crop_x_left = 1019,
-  crop_y_down = 74,
-  view_angle_vertical = 186,
-  view_angle_horizontal = 186,
-  target_x_resolution = 1000,
-  target_y_resolution = 1000,
-  paths_ldr = ["Inputs/LDRImages/*.JPG"],
-  path_temp = "Intermediate",
-  path_rsp_fn = "Inputs/Parameters/Response_function.rsp",
-  path_vignetting = "Inputs/Parameters/vignetting_f5d6.cal",
-  path_fisheye = "Inputs/Parameters/fisheye_corr.cal",
-  path_ndfilter = "Inputs/Parameters/NDfilter_no_transform.cal",
-  path_calfact = "Inputs/Parameters/CF_f5d6.cal"
-  )
-
-  radiance_pipeline(rd)
-  
-
-if __name__ == "__main__":
-  main()

@@ -5,10 +5,10 @@ Inputs.zip
 *.R
 
 # Ignores files in the ./__pycache__ directory
-__pycache__/
+__pycache__/*
 
 # Ignores files in the ./.venv directory
-.venv/
+.venv/*
 
 # Ignores files in the ./.vscode directory
-.vscode/
+.vscode/*
