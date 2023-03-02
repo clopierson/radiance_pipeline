@@ -20,13 +20,13 @@ def radiance_pipeline(rd):
   if test_mode:
     # Disable merge, since it can take a while
     os.system(f"mv {rd.path_temp}/output1.hdr /tmp")
-    os.system(f"rm {rd.path_temp}/*")
+    os.system(f"rm {rd.path_temp}/*.hdr")
     os.system(f"mv /tmp/output1.hdr {rd.rd.path_temp}/")
   
   # Not testing
   else:
     # Clear temp
-    os.system(f"rm {rd.path_temp}/*")
+    os.system(f"rm {rd.path_temp}/*.hdr")
 
     # Merging of exposures 
     os.system(f"hdrgen {' '.join(rd.paths_ldr)} -o {rd.path_temp}/output1.hdr"
