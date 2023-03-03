@@ -26,7 +26,14 @@ def radiance_pipeline(rd):
   # Not testing
   else:
     # Clear temp
-    os.system(f"rm {rd.path_temp}/*.hdr")
+    try:
+      for i in range(1, 11):
+        os.remove(f"{rd.path_temp}/output{i}.hdr")
+    except FileNotFoundError:
+      pass
+    except OSError as e: 
+      print(f"Failed with: {e.strerror}") 
+      print(f"Error code: {e.code}") 
 
     # Merging of exposures 
     os.system(f"hdrgen {' '.join(rd.paths_ldr)} -o {rd.path_temp}/output1.hdr"
