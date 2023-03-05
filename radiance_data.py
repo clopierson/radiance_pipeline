@@ -14,8 +14,8 @@ class RadianceData:
           path_fisheye,
           path_ndfilter,
           path_calfact,
-          path_err = "",
-          path_log = ""):
+          path_errors,
+          path_logs):
             self.diameter         = diameter
             self.crop_x_left            = crop_x_left
             self.crop_y_down            = crop_y_down
@@ -30,7 +30,7 @@ class RadianceData:
             self.path_fisheye     = path_fisheye
             self.path_ndfilter    = path_ndfilter
             self.path_calfact     = path_calfact
-            self.path_err         = path_err
-            self.path_log         = path_log
+            self.path_errors         = path_errors
+            self.path_logs         = path_logs
             return
 
