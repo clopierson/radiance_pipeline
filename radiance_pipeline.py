@@ -1,23 +1,43 @@
 import os
-rp = __import__(__name__)
-from radiance_pipeline.radiance_data import RadianceData
 import sys
+import platform
 
-radiance_pipeline_percent = 0
+from pathlib import Path
 
-def radiance_pipeline(rd):
+import time
+import logging
+
+from radiance_pipeline.radiance_data import RadianceData
+
+from radiance_pipeline.logs import *
+
+
+rp = __import__(__name__)
+
+def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
-  test_mode = False
-
-  # Rerout errors to log file
-  if rd.path_err != "":
-    sys.stderr = open(rd.path_err, 'w')
-  # Rereout other output to log file
-  if rd.path_log != "":
-    sys.stdout = open(rd.path_log, 'w')
-
   radiance_pipeline_percent = 0
-  if test_mode:
+
+  # Grab time pipeline session started for log filenames
+  sessionTime = time.strftime("%Y%m%d-%H%M%S")
+
+  # Generate 1 ErrorLog per image generation session, set filename now
+  errorLogName = f"ErrorLog_{ sessionTime }.txt"
+  errorLogPath = os.path.join( sessionData.path_errors, errorLogName )
+
+  # Generate 1 OutputLog per image generation session, set filename now
+  outputLogName = f"OutputLog_{ sessionTime }.txt"
+  outputLogPath = os.path.join( sessionData.path_logs, outputLogName )
+  # Ensure temp directory exists for storing intermediate output files from each pipeline step
+  Path( sessionData.path_temp ).mkdir( mode=0o777, parents=True, exist_ok=True )
+  # Reroute errors to log file, create dir if not exists
+  # https://docs.python.org/3/library/pathlib.html#pathlib.Path.mkdir
+  Path( sessionData.path_errors ).mkdir( mode=0o777, parents=True, exist_ok=True )
+ # sys.stderr = Path( sessionData.path_errors ).open( mode='w' )
+
+  # Reroute all other output to log file, create dir if not exists
+  Path( sessionData.path_logs ).mkdir( mode=0o777, parents=True, exist_ok=True )
+ # sys.stdout = Path( sessionData.path_logs ).open( mode='w' )
     # Disable merge, since it can take a while
     os.system(f"mv {rd.path_temp}/output1.hdr /tmp")
     os.system(f"rm {rd.path_temp}/*.hdr")
@@ -27,11 +47,13 @@ def radiance_pipeline(rd):
   else:
     # Clear temp
     os.system(f"rm {rd.path_temp}/*.hdr")
+      recordError( errorLogPath, e )
 
     # Merging of exposures 
     os.system(f"hdrgen {' '.join(rd.paths_ldr)} -o {rd.path_temp}/output1.hdr"
               f" -r {rd.path_rsp_fn} -a -e -f -g")
 
+      recordError( errorLogPath, e )
   radiance_pipeline_percent = 10
 
   # Nullifcation of exposure value
