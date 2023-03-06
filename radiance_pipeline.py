@@ -5,7 +5,7 @@ import platform
 from pathlib import Path
 
 import time
-import logging
+
 
 from radiance_pipeline.radiance_data import RadianceData
 
@@ -18,17 +18,8 @@ def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   radiance_pipeline_percent = 0
 
-  # Grab time pipeline session started for log filenames
+  # Grab time pipeline session started for log filenames, only want 1 per session
   sessionTime = time.strftime("%Y%m%d-%H%M%S")
-
-  # Generate 1 ErrorLog per image generation session, set filename now
-  errorLogName = f"ErrorLog_{ sessionTime }.txt"
-  errorLogPath = os.path.join( sessionData.path_errors, errorLogName )
-
-  # Generate 1 OutputLog per image generation session, set filename now
-  outputLogName = f"OutputLog_{ sessionTime }.txt"
-  outputLogPath = os.path.join( sessionData.path_logs, outputLogName )
-
 
   # Get OS Platform info
   osName = os.name
@@ -47,7 +38,7 @@ def radiance_pipeline( sessionData ):
   TEST_MODE_ON = False
 
   # Ensure temp directory exists for storing intermediate output files from each pipeline step
-  Path( sessionData.path_temp ).mkdir( mode=0o777, parents=True, exist_ok=True )
+  Path( sessionData.path_temp ).mkdir( mode=0o755, parents=True, exist_ok=True )
 
   # Joining paths for intermediate file results with absolute path of temp directory: cross-platform filepaths
   output1Path = os.path.join( sessionData.path_temp, "output1.hdr" )
@@ -62,22 +53,11 @@ def radiance_pipeline( sessionData ):
   output10Path = os.path.join( sessionData.path_temp, "output10.hdr" )
   output11Path = os.path.join( sessionData.path_temp, "output11.hdr" )
 
-  print( "output1Path: {}".format( output1Path ) )
-
 
   # List of paths
   intermediateOutputFilePaths = [ output1Path, output2Path, output3Path, output4Path, output5Path,
                                   output6Path, output7Path, output8Path, output9Path, output10Path, output11Path ]
 
-
-  # Reroute errors to log file, create dir if not exists
-  # https://docs.python.org/3/library/pathlib.html#pathlib.Path.mkdir
-  Path( sessionData.path_errors ).mkdir( mode=0o777, parents=True, exist_ok=True )
- # sys.stderr = Path( sessionData.path_errors ).open( mode='w' )
-
-  # Reroute all other output to log file, create dir if not exists
-  Path( sessionData.path_logs ).mkdir( mode=0o777, parents=True, exist_ok=True )
- # sys.stdout = Path( sessionData.path_logs ).open( mode='w' )
 
 
   # --------------------------------------------------------------------------------------------
@@ -101,14 +81,10 @@ def radiance_pipeline( sessionData ):
 
     except FileNotFoundError:
       pass
-
     except OSError as e:
       print(f"Error on command: {curCmd}")
-      print(f"Failed with: {e.strerror}") 
-      print(f"Error code: {e.errno}\n")
       
-      recordError( errorLogPath, e )
-
+      recordLog( sessionTime, "ERROR", e )
     finally:
       pass
 
@@ -116,9 +92,8 @@ def radiance_pipeline( sessionData ):
     try:
       os.system(f"hdrgen {' '.join(sessionData.paths_ldr)} -o {output1Path}"
                 f" -r {sessionData.path_rsp_fn} -a -e -f -g")
-      
     except Exception as e:
-      recordError( errorLogPath, e )
+      recordLog( sessionTime, "ERROR", e )
 
   # Update progress bar percent
   radiance_pipeline_percent = 10
