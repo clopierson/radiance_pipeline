@@ -1,29 +1,71 @@
+import os
 import sys
-import time
 import logging
 from pathlib import Path
 
 
 # This function adds an error message to a log if it exists, otherwise creates the file first.
-def recordError( inputErrorPath, error ):
-    errorPath = Path( inputErrorPath )
-    print(f"errorPath: {errorPath}")
+def recordLog( sessionTime, logLevel="NOTSET", message=None ):
+    currentAbsPath = Path.cwd().resolve()
 
-    if not ( errorPath.is_file ):
-        errorPath.mkdir( mode=0o777, parents=True, exist_ok=True )
+    # Error Logging
+    if ( logLevel == "ERROR" ):
+        log = logging.getLogger( "errorLogger" )
 
-    # Set config for error logging
-    logging.basicConfig(filename=inputErrorPath, level=logging.ERROR, 
-                        format='%(asctime)s %(levelname)s %(name)s %(message)s')
+        # Make 'errors' dir if it doesn't exist already
+        # Permissions: -rwxr-xr-x
+        errorsDirPath = os.path.join( currentAbsPath, "errors" )
+        Path( errorsDirPath ).mkdir( mode=0o755, parents=True, exist_ok=True )
+
+        # Set error log filename for the session
+        errorLogName = f"ErrorLog_{ sessionTime }.txt"
+        errorLogPath = os.path.join( errorsDirPath, errorLogName )
+
+        # Make logfile if it doesn't exist already
+        # Permissions: -rw-r--r--
+        Path( errorLogPath ).touch( mode=0o644, exist_ok=True )
+
+        # Set config
+        logging.basicConfig( filename=errorLogPath, level=logging.ERROR, force=True,
+                            format='%(asctime)s %(levelname)s %(name)s %(message)s' )
+
+        # Reroute stderr to session error log file
+        sys.stderr = Path( errorLogPath ).open( mode='w' )
+
+        # Send error message to log
+        log.error( message )
+
+        # Redirect stderr output to terminal for easier debugging after logging error msg
+        sys.stderr = sys.__stdout__
     
-    #   # Set config for general logging
-    # logging.basicConfig(filename=outputLogPath, level=logging.INFO, 
-    #                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
-    errorLog = logging.getLogger( __name__ )
-    errorLog.error( error )
+    # Output Logging
+    elif ( logLevel == "INFO" ):
+        log = logging.getLogger( "outputLogger" )
 
-# This function prints an error to stderr
-# Source: https://stackoverflow.com/questions/5574702/how-do-i-print-to-stderr-in-python#:~:text=The%20optional%20function-,eprint,-saves%20some%20repetition
-def printError(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+        # Make 'logs' dir if it doesn't exist already
+        # Permissions: -rwxr-xr-x
+        logsDirPath = os.path.join( currentAbsPath, "logs" )
+        Path( logsDirPath ).mkdir( mode=0o755, parents=True, exist_ok=True )
+
+        # Set output log filename for the session
+        logName = f"OutputLog_{ sessionTime }.txt"
+        logPath = os.path.join( logsDirPath, logName )
+
+        # Make logfile if it doesn't exist already
+        # Permissions: -rw-r--r--
+        Path( logPath ).touch( mode=0o644, exist_ok=True )
+
+        # Set config
+        logging.basicConfig( filename=logPath, level=logging.INFO, force=True,
+                             format='%(asctime)s %(levelname)s %(name)s %(message)s' )
+        
+        # Reroute stdout to session log file
+        sys.stdout = Path( logPath ).open( mode='w' )
+
+        # Send error message to log
+        log.info( message )
+
+        # Redirect stdout output to terminal for easier debugging after logging error msg
+        sys.stdout = sys.__stdout__
+    
