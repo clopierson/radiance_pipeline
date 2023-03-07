@@ -42,7 +42,7 @@ def radiance_pipeline( sessionData ):
 
   # Joining paths for intermediate file results with absolute path of temp directory: cross-platform filepaths
   output1Path = os.path.join( sessionData.path_temp, "output1.hdr" )
-  output2Path = os.path.join( sessionData.path_temp, "output3.hdr" )
+  output2Path = os.path.join( sessionData.path_temp, "output2.hdr" )
   output3Path = os.path.join( sessionData.path_temp, "output3.hdr" )
   output4Path = os.path.join( sessionData.path_temp, "output4.hdr" )
   output5Path = os.path.join( sessionData.path_temp, "output5.hdr" )
@@ -51,12 +51,11 @@ def radiance_pipeline( sessionData ):
   output8Path = os.path.join( sessionData.path_temp, "output8.hdr" )
   output9Path = os.path.join( sessionData.path_temp, "output9.hdr" )
   output10Path = os.path.join( sessionData.path_temp, "output10.hdr" )
-  output11Path = os.path.join( sessionData.path_temp, "output11.hdr" )
 
 
   # List of paths
   intermediateOutputFilePaths = [ output1Path, output2Path, output3Path, output4Path, output5Path,
-                                  output6Path, output7Path, output8Path, output9Path, output10Path, output11Path ]
+                                  output6Path, output7Path, output8Path, output9Path, output10Path ]
 
 
 
