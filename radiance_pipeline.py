@@ -58,7 +58,6 @@ def radiance_pipeline( sessionData ):
                                   output6Path, output7Path, output8Path, output9Path, output10Path ]
 
 
-
   # --------------------------------------------------------------------------------------------
   # Merging of exposures
   
@@ -94,7 +93,6 @@ def radiance_pipeline( sessionData ):
     except Exception as e:
       recordLog( sessionTime, "ERROR", e )
 
-  # Update progress bar percent
   radiance_pipeline_percent = 10
 
   # --------------------------------------------------------------------------------------------
@@ -105,7 +103,7 @@ def radiance_pipeline( sessionData ):
   # Nullifcation of exposure value
   os.system(f"ra_xyze -r -o {output1Path} > {output2Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 20
 
   # --------------------------------------------------------------------------------------------
@@ -116,7 +114,7 @@ def radiance_pipeline( sessionData ):
   os.system(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
             f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 30
 
   # --------------------------------------------------------------------------------------------
@@ -126,18 +124,18 @@ def radiance_pipeline( sessionData ):
   # Vignetting correction
   os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 40
   
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
-  # Crop
+  # Crop             
   os.system(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
             f"{output4Path} > {output5Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 50
 
   # --------------------------------------------------------------------------------------------
@@ -147,7 +145,7 @@ def radiance_pipeline( sessionData ):
   # Projection adjustment
   os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 60
 
   # --------------------------------------------------------------------------------------------
@@ -157,7 +155,7 @@ def radiance_pipeline( sessionData ):
   # ND Filter correction
   os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 70
 
   # --------------------------------------------------------------------------------------------
@@ -167,7 +165,7 @@ def radiance_pipeline( sessionData ):
   # Photometric adjustment
   os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 80
 
   # --------------------------------------------------------------------------------------------
@@ -182,14 +180,15 @@ def radiance_pipeline( sessionData ):
                f"{output8Path} > {output9Path}" )
     
   elif (osName == 'posix'):
-    os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path} > {output9Path}")
+    os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
+              f"> {output9Path}")
 
   # Real Viewing Angle
   os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
             f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
             f"< {output9Path} > {output10Path}")
   
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 90 
   
   # --------------------------------------------------------------------------------------------
@@ -199,7 +198,7 @@ def radiance_pipeline( sessionData ):
   # Validity check
   os.system(f"evalglare -V {output10Path}")
 
-  # Update progress bar percent
+  
   radiance_pipeline_percent = 100
 
   # --------------------------------------------------------------------------------------------
