@@ -14,6 +14,9 @@ from radiance_pipeline.logs import *
 
 rp = __import__(__name__)
 
+def radiance_pipeline_get_percent():
+    return radiance_pipeline_percent
+
 def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   radiance_pipeline_percent = 0
