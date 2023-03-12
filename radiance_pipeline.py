@@ -84,19 +84,20 @@ def radiance_pipeline( sessionData ):
       pass
     except OSError as e:
       print(f"Error on command: {curCmd}")
-      
       recordLog( sessionTime, "ERROR", e )
     finally:
       pass
 
     # Merge exposures
     try:
+      radiance_pipeline_percent = 5
       os.system(f"hdrgen {' '.join(sessionData.paths_ldr)} -o {output1Path}"
                 f" -r {sessionData.path_rsp_fn} -a -e -f -g")
     except Exception as e:
       recordLog( sessionTime, "ERROR", e )
-
-  radiance_pipeline_percent = 10
+    finally:
+      print("Finished merging exposures.")
+      radiance_pipeline_percent = 10
 
   # --------------------------------------------------------------------------------------------
 
@@ -104,104 +105,131 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Nullifcation of exposure value
-  os.system(f"ra_xyze -r -o {output1Path} > {output2Path}")
-
-  
-  radiance_pipeline_percent = 20
+  try:
+    os.system(f"ra_xyze -r -o {output1Path} > {output2Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished nullifying exposure values.")
+    radiance_pipeline_percent = 20
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # Cropping and resizing
-  os.system(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
-            f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}")
-
-  
-  radiance_pipeline_percent = 30
+  try:
+    os.system(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
+              f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished cropping and resizing image.")
+    radiance_pipeline_percent = 30
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # Vignetting correction
-  os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
-
-  
-  radiance_pipeline_percent = 40
+  try:
+    os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished correcting for vignetting.")
+    radiance_pipeline_percent = 40
   
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # Crop             
-  os.system(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
-            f"{output4Path} > {output5Path}")
-
-  
-  radiance_pipeline_percent = 50
+  try:
+    os.system(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
+              f"{output4Path} > {output5Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished cropping image.")
+    radiance_pipeline_percent = 50
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # Projection adjustment
-  os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
-
-  
-  radiance_pipeline_percent = 60
+  try:
+    os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished image projection adjustment.")
+    radiance_pipeline_percent = 60
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # ND Filter correction
-  os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
-
-  
-  radiance_pipeline_percent = 70
+  try:
+    os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished neutral density filter correction.")
+    radiance_pipeline_percent = 70
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # Photometric adjustment
-  os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
-
-  
-  radiance_pipeline_percent = 80
+  try:
+    os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished photometric adjustment.")
+    radiance_pipeline_percent = 80
 
   # --------------------------------------------------------------------------------------------
 
 
   # --------------------------------------------------------------------------------------------
   # HDR image header editing
-  # Projection type
-  if (osName == 'nt'):
-    os.system( f"(get-content < {output8Path} "
-                "| %{$_ -replace \"View\", \"d\" } && getinfo - < "
-               f"{output8Path} > {output9Path}" )
+  try:
+      os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
+                f"> {output9Path}")
+  except Exception as e:
+      recordLog( sessionTime, "ERROR", e )
+  finally:
+      print("Finished editing image header.")
+      radiance_pipeline_percent = 85
     
-  elif (osName == 'posix'):
-    os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
-              f"> {output9Path}")
 
   # Real Viewing Angle
-  os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
-            f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
-            f"< {output9Path} > {output10Path}")
-  
-  
-  radiance_pipeline_percent = 90 
+  try:
+    os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
+          f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
+          f"< {output9Path} > {output10Path}")
+  except Exception as e:
+      recordLog( sessionTime, "ERROR", e )
+  finally:
+      print("Finished adjusting for real viewing angle.")
+      radiance_pipeline_percent = 90
   
   # --------------------------------------------------------------------------------------------
 
   
   # --------------------------------------------------------------------------------------------
   # Validity check
-  os.system(f"evalglare -V {output10Path}")
-
-  
-  radiance_pipeline_percent = 100
+  try:
+    os.system(f"evalglare -V {output10Path}")
+  except Exception as e:
+    recordLog( sessionTime, "ERROR", e )
+  finally:
+    print("Finished output image validity check.")
+    radiance_pipeline_percent = 100
 
   # --------------------------------------------------------------------------------------------
