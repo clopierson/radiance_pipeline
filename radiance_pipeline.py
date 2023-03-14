@@ -15,11 +15,16 @@ from radiance_pipeline.logs import *
 rp = __import__(__name__)
 
 def radiance_pipeline_get_percent():
-    return radiance_pipeline_percent
+  return radiance_pipeline_percent
+
+def radiance_pipeline_get_status_text():
+  return radiance_pipeline_status_text
 
 def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
+  global radiance_pipeline_status_text
   radiance_pipeline_percent = 0
+  radiance_pipeline_status_text = "Setting up..."
 
   # Grab time pipeline session started for log filenames, only want 1 per session
   sessionTime = time.strftime("%Y%m%d-%H%M%S")
@@ -57,13 +62,14 @@ def radiance_pipeline( sessionData ):
 
 
   # List of paths
-  intermediateOutputFilePaths = [ output1Path, output2Path, output3Path, output4Path, output5Path,
-                                  output6Path, output7Path, output8Path, output9Path, output10Path ]
+  intermediateOutputFilePaths = [ output1Path, output2Path, output3Path, output4Path, 
+                                 output5Path, output6Path, output7Path, output8Path, 
+                                 output9Path, output10Path ]
 
 
   # --------------------------------------------------------------------------------------------
   # Merging of exposures
-  
+  radiance_pipeline_status_text = "Merging exposures (may take a while)"
   if TEST_MODE_ON:
     # Disable merge, since it can take a while
     os.system(f"mv {output1Path} /tmp")
@@ -105,6 +111,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Nullifcation of exposure value
+  radiance_pipeline_status_text = "Nullifying exposures"
   try:
     os.system(f"ra_xyze -r -o {output1Path} > {output2Path}")
   except Exception as e:
@@ -117,14 +124,15 @@ def radiance_pipeline( sessionData ):
 
 
   # --------------------------------------------------------------------------------------------
-  # Cropping and resizing
+  # Cropping
+  radiance_pipeline_status_text = "Cropping"
   try:
     os.system(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
               f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
-    print("Finished cropping and resizing image.")
+    print("Finished cropping image.")
     radiance_pipeline_percent = 30
 
   # --------------------------------------------------------------------------------------------
@@ -132,6 +140,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Vignetting correction
+  radiance_pipeline_status_text = "Correcting vignetting"
   try:
     os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
   except Exception as e:
@@ -145,13 +154,14 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Crop             
+  radiance_pipeline_status_text = "Resizing"
   try:
     os.system(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
               f"{output4Path} > {output5Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
-    print("Finished cropping image.")
+    print("Finished resizing image.")
     radiance_pipeline_percent = 50
 
   # --------------------------------------------------------------------------------------------
@@ -159,6 +169,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Projection adjustment
+  radiance_pipeline_status_text = "Adjusting projection"
   try:
     os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
   except Exception as e:
@@ -172,6 +183,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # ND Filter correction
+  radiance_pipeline_status_text = "Correcting neutral density filter"
   try:
     os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
   except Exception as e:
@@ -185,6 +197,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # Photometric adjustment
+  radiance_pipeline_status_text = "Performing photometric adjustment"
   try:
     os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
   except Exception as e:
@@ -198,6 +211,7 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
   # HDR image header editing
+  radiance_pipeline_status_text = "Editing header"
   try:
       os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
                 f"> {output9Path}")
@@ -209,6 +223,7 @@ def radiance_pipeline( sessionData ):
     
 
   # Real Viewing Angle
+  radiance_pipeline_status_text = "Adjusting for real viewing angle"
   try:
     os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
           f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
@@ -224,6 +239,7 @@ def radiance_pipeline( sessionData ):
   
   # --------------------------------------------------------------------------------------------
   # Validity check
+  radiance_pipeline_status_text = "Performing validity check"
   try:
     os.system(f"evalglare -V {output10Path}")
   except Exception as e:
