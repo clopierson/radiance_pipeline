@@ -254,4 +254,5 @@ def radiance_pipeline( sessionData ):
     radiance_pipeline_percent = 100
 
   # --------------------------------------------------------------------------------------------
+  radiance_pipeline_status_text = "Finished"
   radiance_pipeline_finished = True
