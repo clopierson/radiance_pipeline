@@ -20,9 +20,14 @@ def radiance_pipeline_get_percent():
 def radiance_pipeline_get_status_text():
   return radiance_pipeline_status_text
 
+def radiance_pipeline_get_finished():
+  return radiance_pipeline_finished
+
 def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   global radiance_pipeline_status_text
+  global radiance_pipeline_finished
+  radiance_pipeline_finished = False
   radiance_pipeline_percent = 0
   radiance_pipeline_status_text = "Setting up..."
 
@@ -249,3 +254,4 @@ def radiance_pipeline( sessionData ):
     radiance_pipeline_percent = 100
 
   # --------------------------------------------------------------------------------------------
+  radiance_pipeline_finished = True
