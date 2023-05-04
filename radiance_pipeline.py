@@ -102,8 +102,13 @@ def radiance_pipeline( sessionData ):
     # Merge exposures
     try:
       radiance_pipeline_percent = 5
-      os.system(f"hdrgen {' '.join(sessionData.paths_ldr)} -o {output1Path}"
-                f" -r {sessionData.path_rsp_fn} -a -e -f -g")
+      if sessionData.path_rsp_fn is not None:
+        os.system(f"hdrgen {' '.join(sessionData.paths_ldr)} -o {output1Path}"
+                  f" -r {sessionData.path_rsp_fn} -a -e -f -g")
+      else:
+        os.system(f"hdrgen {' '.join(sessionData.paths_ldr)} -o {output1Path}"
+                  f" -a -e -f -g")
+        
     except Exception as e:
       recordLog( sessionTime, "ERROR", e )
     finally:
@@ -147,7 +152,10 @@ def radiance_pipeline( sessionData ):
   # Vignetting correction
   radiance_pipeline_status_text = "Correcting vignetting"
   try:
-    os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
+    if sessionData.path_vignetting is not None:
+      os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
+    else:
+      os.system(f"cp {output3Path} {output4Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
@@ -176,7 +184,10 @@ def radiance_pipeline( sessionData ):
   # Projection adjustment
   radiance_pipeline_status_text = "Adjusting projection"
   try:
-    os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
+    if sessionData.path_fisheye is not None:
+      os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
+    else:
+      os.system(f"cp {output5Path} {output6Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
@@ -190,7 +201,10 @@ def radiance_pipeline( sessionData ):
   # ND Filter correction
   radiance_pipeline_status_text = "Correcting neutral density filter"
   try:
-    os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
+    if sessionData.path_ndfilter is not None:
+      os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
+    else:
+      os.system(f"cp {output6Path} {output7Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
@@ -204,7 +218,10 @@ def radiance_pipeline( sessionData ):
   # Photometric adjustment
   radiance_pipeline_status_text = "Performing photometric adjustment"
   try:
-    os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
+    if sessionData.path_calfact is not None:
+      os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
+    else:
+      os.system(f"cp {output7Path} {output8Path}")
   except Exception as e:
     recordLog( sessionTime, "ERROR", e )
   finally:
