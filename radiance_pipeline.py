@@ -11,6 +11,19 @@ from radiance_pipeline.radiance_data import RadianceData
 
 from radiance_pipeline.logs import *
 
+from dataclasses import dataclass
+
+# Apply different merging logic
+TEST_MODE_ON = False
+
+@dataclass
+class PipelineStage:
+  cmd: str
+  altcmd: str
+  percent_difference: int
+  status_text: str
+  finishmsg: str
+  path: str = "No path needed"
 
 rp = __import__(__name__)
 
@@ -47,8 +60,6 @@ def radiance_pipeline( sessionData ):
   print( "\n" )
 
 
-  # Apply different merging logic
-  TEST_MODE_ON = False
 
   # Ensure temp directory exists for storing intermediate output files from each pipeline step
   Path( sessionData.path_temp ).mkdir( mode=0o755, parents=True, exist_ok=True )
@@ -71,7 +82,6 @@ def radiance_pipeline( sessionData ):
                                  output5Path, output6Path, output7Path, output8Path, 
                                  output9Path, output10Path ]
 
-
   # --------------------------------------------------------------------------------------------
   # Merging of exposures
   radiance_pipeline_status_text = "Merging exposures (may take a while)"
@@ -79,7 +89,7 @@ def radiance_pipeline( sessionData ):
     # Disable merge, since it can take a while
     os.system(f"mv {output1Path} /tmp")
     os.system(f"rm {sessionData.path_temp}/*.hdr")
-    os.system(f"mv {output1Path} {sessionData.sessionData.path_temp}/")
+    os.system(f"mv {output1Path} {sessionData.path_temp}/")
   
   # Not testing
   else:
@@ -117,159 +127,56 @@ def radiance_pipeline( sessionData ):
 
   # --------------------------------------------------------------------------------------------
 
+  pipeline = [
+  PipelineStage(f"ra_xyze -r -o {output1Path} > {output2Path}", None, 10, 
+  "Nullifying exposures", "Finished nullifying exposures"),
 
+  PipelineStage(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
+  f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}", None, 10,
+  "Cropping", "Finished cropping"),
 
-  # --------------------------------------------------------------------------------------------
-  # Nullifcation of exposure value
-  radiance_pipeline_status_text = "Nullifying exposures"
-  try:
-    os.system(f"ra_xyze -r -o {output1Path} > {output2Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished nullifying exposure values.")
-    radiance_pipeline_percent = 20
+  PipelineStage(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
+                f"cp {output3Path} {output4Path}", 10, "Correcting vignetting", 
+                "Finished correcting vignetting"),
 
-  # --------------------------------------------------------------------------------------------
+  PipelineStage(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
+  f"{output4Path} > {output5Path}", None, 10, "Resizing", "Finished resizing"),
 
+  PipelineStage(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}", 
+  f"cp {output5Path} {output6Path}", 10, "Adjusting fisheye", "Finished adjusting fisheye"),
 
-  # --------------------------------------------------------------------------------------------
-  # Cropping
-  radiance_pipeline_status_text = "Cropping"
-  try:
-    os.system(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
-              f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished cropping image.")
-    radiance_pipeline_percent = 30
+  PipelineStage(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}",
+  f"cp {output6Path} {output7Path}", 10, "Correcting neutral density filter",
+  "Finished correcting neutral density filter"),
 
-  # --------------------------------------------------------------------------------------------
-
-
-  # --------------------------------------------------------------------------------------------
-  # Vignetting correction
-  radiance_pipeline_status_text = "Correcting vignetting"
-  try:
-    if sessionData.path_vignetting is not None:
-      os.system(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}")
-    else:
-      os.system(f"cp {output3Path} {output4Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished correcting for vignetting.")
-    radiance_pipeline_percent = 40
+  PipelineStage(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}",
+  f"cp {output7Path} {output8Path}", 10, "Performing photometric adjustment", 
+  "Finished photometric adjustment"),
   
-  # --------------------------------------------------------------------------------------------
+  PipelineStage(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
+          f"> {output9Path}", None, 5, "Editing header", "Finished editing image header"),
 
-
-  # --------------------------------------------------------------------------------------------
-  # Crop             
-  radiance_pipeline_status_text = "Resizing"
-  try:
-    os.system(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
-              f"{output4Path} > {output5Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished resizing image.")
-    radiance_pipeline_percent = 50
-
-  # --------------------------------------------------------------------------------------------
-
-
-  # --------------------------------------------------------------------------------------------
-  # Projection adjustment
-  radiance_pipeline_status_text = "Adjusting projection"
-  try:
-    if sessionData.path_fisheye is not None:
-      os.system(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}")
-    else:
-      os.system(f"cp {output5Path} {output6Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished image projection adjustment.")
-    radiance_pipeline_percent = 60
-
-  # --------------------------------------------------------------------------------------------
-
-
-  # --------------------------------------------------------------------------------------------
-  # ND Filter correction
-  radiance_pipeline_status_text = "Correcting neutral density filter"
-  try:
-    if sessionData.path_ndfilter is not None:
-      os.system(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}")
-    else:
-      os.system(f"cp {output6Path} {output7Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished neutral density filter correction.")
-    radiance_pipeline_percent = 70
-
-  # --------------------------------------------------------------------------------------------
-
-
-  # --------------------------------------------------------------------------------------------
-  # Photometric adjustment
-  radiance_pipeline_status_text = "Performing photometric adjustment"
-  try:
-    if sessionData.path_calfact is not None:
-      os.system(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}")
-    else:
-      os.system(f"cp {output7Path} {output8Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished photometric adjustment.")
-    radiance_pipeline_percent = 80
-
-  # --------------------------------------------------------------------------------------------
-
-
-  # --------------------------------------------------------------------------------------------
-  # HDR image header editing
-  radiance_pipeline_status_text = "Editing header"
-  try:
-      os.system(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
-                f"> {output9Path}")
-  except Exception as e:
-      recordLog( sessionTime, "ERROR", e )
-  finally:
-      print("Finished editing image header.")
-      radiance_pipeline_percent = 85
-    
-
-  # Real Viewing Angle
-  radiance_pipeline_status_text = "Adjusting for real viewing angle"
-  try:
-    os.system(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
+  PipelineStage(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
           f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
-          f"< {output9Path} > {output10Path}")
-  except Exception as e:
-      recordLog( sessionTime, "ERROR", e )
-  finally:
-      print("Finished adjusting for real viewing angle.")
-      radiance_pipeline_percent = 90
-  
-  # --------------------------------------------------------------------------------------------
+          f"< {output9Path} > {output10Path}", None, 5, "Adjusting for real viewing angle",
+          "Finished adjusting for real view angle"),
 
-  
-  # --------------------------------------------------------------------------------------------
-  # Validity check
-  radiance_pipeline_status_text = "Performing validity check"
-  try:
-    os.system(f"evalglare -V {output10Path}")
-  except Exception as e:
-    recordLog( sessionTime, "ERROR", e )
-  finally:
-    print("Finished output image validity check.")
-    radiance_pipeline_percent = 100
+  PipelineStage(f"evalglare -V {output10Path}", None, 10, "Performing validity check",
+  "Finished output image validity check")
+  ]
 
-  # --------------------------------------------------------------------------------------------
+  for stage in pipeline:
+    radiance_pipeline_status_text = stage.status_text
+    try:
+      if stage.path is not None:
+        os.system(stage.cmd)
+      else:
+        os.system(stage.altcmd)
+    except Exception as e:
+      recordLog(sessionTime, "ERROR", e)
+    finally:
+      print(stage.finishmsg)
+      radiance_pipeline_percent += stage.percent_difference
+
   radiance_pipeline_status_text = "Finished"
   radiance_pipeline_finished = True
