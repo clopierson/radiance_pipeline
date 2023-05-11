@@ -7,9 +7,9 @@ from pathlib import Path
 import time
 
 
-from radiance_pipeline.radiance_data import RadianceData
+from submodules.radiance_pipeline.radiance_data import RadianceData
 
-from radiance_pipeline.logs import *
+from submodules.radiance_pipeline.logs import *
 
 from dataclasses import dataclass
 
