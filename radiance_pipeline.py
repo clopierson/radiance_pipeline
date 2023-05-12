@@ -1,17 +1,14 @@
 import os
-import sys
+import sys 
 import platform
-
 from pathlib import Path
-
 import time
+from dataclasses import dataclass
 
 
 from submodules.radiance_pipeline.radiance_data import RadianceData
-
 from submodules.radiance_pipeline.logs import *
 
-from dataclasses import dataclass
 
 # Apply different merging logic
 TEST_MODE_ON = False
@@ -23,7 +20,7 @@ class PipelineStage:
   percent_difference: int
   status_text: str
   finishmsg: str
-  path: str = "No path needed"
+  skip: bool = False
 
 rp = __import__(__name__)
 
@@ -137,21 +134,24 @@ def radiance_pipeline( sessionData ):
 
   PipelineStage(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
                 f"cp {output3Path} {output4Path}", 10, "Correcting vignetting", 
-                "Finished correcting vignetting"),
+                "Finished correcting vignetting", sessionData.path_vignetting is None),
 
   PipelineStage(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
   f"{output4Path} > {output5Path}", None, 10, "Resizing", "Finished resizing"),
 
   PipelineStage(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}", 
-  f"cp {output5Path} {output6Path}", 10, "Adjusting fisheye", "Finished adjusting fisheye"),
+  f"cp {output5Path} {output6Path}", 10, "Adjusting fisheye", "Finished adjusting fisheye",
+  sessionData.path_fisheye is None),
 
   PipelineStage(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}",
   f"cp {output6Path} {output7Path}", 10, "Correcting neutral density filter",
-  "Finished correcting neutral density filter"),
+  "Finished correcting neutral density filter",
+  sessionData.path_ndfilter is None),
 
   PipelineStage(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}",
   f"cp {output7Path} {output8Path}", 10, "Performing photometric adjustment", 
-  "Finished photometric adjustment"),
+  "Finished photometric adjustment",
+  sessionData.path_calfact is None),
   
   PipelineStage(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
           f"> {output9Path}", None, 5, "Editing header", "Finished editing image header"),
@@ -168,7 +168,7 @@ def radiance_pipeline( sessionData ):
   for stage in pipeline:
     radiance_pipeline_status_text = stage.status_text
     try:
-      if stage.path is not None:
+      if not stage.skip:
         os.system(stage.cmd)
       else:
         os.system(stage.altcmd)
