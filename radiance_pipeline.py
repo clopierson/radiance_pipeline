@@ -174,6 +174,7 @@ def radiance_pipeline( sessionData ):
         os.system(stage.altcmd)
     except Exception as e:
       recordLog(sessionTime, "ERROR", e)
+      print(f"Radiance pipeline error: {e}")
     finally:
       print(stage.finishmsg)
       radiance_pipeline_percent += stage.percent_difference
