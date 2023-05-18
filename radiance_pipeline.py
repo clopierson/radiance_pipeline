@@ -11,7 +11,7 @@ from submodules.radiance_pipeline.logs import *
 
 
 # Apply different merging logic
-TEST_MODE_ON = True
+TEST_MODE_ON = False
 
 @dataclass
 class PipelineStage:
