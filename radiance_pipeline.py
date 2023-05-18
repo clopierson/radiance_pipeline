@@ -222,7 +222,7 @@ def radiance_pipeline( sessionData ):
         recordLog(sessionTime, "ERROR", e)
         print(f"Radiance pipeline error: {e}")
       finally:
-        print(stage.finishmsg)
+        print(stage.finish_text)
         radiance_pipeline_percent += stage.percent_difference
 
   # Set status text
