@@ -19,7 +19,7 @@ class PipelineStage:
   altcmd: str
   percent_difference: int
   status_text: str
-  finishmsg: str
+  finish_text: str
   skip: bool = False
 
 rp = __import__(__name__)
@@ -84,13 +84,11 @@ def radiance_pipeline( sessionData ):
   # --------------------------------------------------------------------------------------------
   # Merging of exposures
   radiance_pipeline_status_text = "Merging exposures (may take a while)"
+
   if TEST_MODE_ON:
     # Disable merge, since it can take a while
-    os.system(f"mv {output1Path} /tmp")
     os.system(f"rm {sessionData.path_temp}/*.hdr")
-    os.system(f"mv {output1Path} {sessionData.path_temp}/")
-  
-  # Not testing
+    os.system(f"cp /home/lpz/school/rp_test/submodules/output1.hdr /home/lpz/school/rp_test/submodules/Intermediate/output1.hdr")
   else:
     # Clear temp directory
     try:
@@ -127,47 +125,85 @@ def radiance_pipeline( sessionData ):
   # --------------------------------------------------------------------------------------------
 
   pipeline = [
-  PipelineStage(f"ra_xyze -r -o {output1Path} > {output2Path}", None, 10, 
-  "Nullifying exposures", "Finished nullifying exposures"),
+  PipelineStage(cmd= f"ra_xyze -r -o {output1Path} > {output2Path}", 
+                altcmd=None, 
+                percent_difference=10, 
+                status_text="Nullifying exposures", 
+                finish_text="Finished nullifying exposures",
+                skip=False),
 
-  PipelineStage(f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
-  f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}", None, 10,
-  "Cropping", "Finished cropping"),
+  PipelineStage(cmd=f"pcompos -x {sessionData.diameter} -y {sessionData.diameter} {output2Path} "
+                    f"-{sessionData.crop_x_left} -{sessionData.crop_y_down}, > {output3Path}", 
+                altcmd=None, 
+                percent_difference=10,
+                status_text="Cropping", 
+                finish_text="Finished cropping",
+                skip=False),
 
-  PipelineStage(f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
-                f"cp {output3Path} {output4Path}", 10, "Correcting vignetting", 
-                "Finished correcting vignetting", sessionData.path_vignetting is None),
+  PipelineStage(cmd=f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
+                altcmd=f"cp {output3Path} {output4Path}", 
+                percent_difference=10, 
+                status_text="Correcting vignetting", 
+                finish_text="Finished correcting vignetting", 
+                skip=sessionData.path_vignetting is None),
 
-  PipelineStage(f"pfilt -1 -x {sessionData.target_x_resolution} -y {sessionData.target_y_resolution} "
-  f"{output4Path} > {output5Path}", None, 10, "Resizing", "Finished resizing"),
+  PipelineStage(cmd=f"pfilt -1 -x {sessionData.target_x_resolution} -y "
+                    f"{sessionData.target_y_resolution} {output4Path} > {output5Path}", 
+                altcmd=None, 
+                percent_difference=10, 
+                status_text="Resizing", 
+                finish_text="Finished resizing",
+                skip=False),
 
-  PipelineStage(f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}", 
-  f"cp {output5Path} {output6Path}", 10, "Adjusting fisheye", "Finished adjusting fisheye",
-  sessionData.path_fisheye is None),
+  PipelineStage(cmd=f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}", 
+                altcmd=f"cp {output5Path} {output6Path}", 
+                percent_difference=10, 
+                status_text="Adjusting fisheye", 
+                finish_text="Finished adjusting fisheye",
+                skip=sessionData.path_fisheye is None),
 
-  PipelineStage(f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}",
-  f"cp {output6Path} {output7Path}", 10, "Correcting neutral density filter",
-  "Finished correcting neutral density filter",
-  sessionData.path_ndfilter is None),
+  PipelineStage(cmd=f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}",
+                altcmd=f"cp {output6Path} {output7Path}", 
+                percent_difference=10, 
+                status_text="Correcting neutral density filter",
+                finish_text="Finished correcting neutral density filter",
+                skip=sessionData.path_ndfilter is None),
 
-  PipelineStage(f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}",
-  f"cp {output7Path} {output8Path}", 10, "Performing photometric adjustment", 
-  "Finished photometric adjustment",
-  sessionData.path_calfact is None),
+  PipelineStage(cmd=f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}",
+                altcmd=f"cp {output7Path} {output8Path}", 
+                percent_difference=10, 
+                status_text="Performing photometric adjustment", 
+                finish_text="Finished photometric adjustment",
+                skip=sessionData.path_calfact is None),
   
-  PipelineStage(f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
-          f"> {output9Path}", None, 5, "Editing header", "Finished editing image header"),
+  PipelineStage(cmd=f"(getinfo < {output8Path} | sed \"/VIEW/d\" && getinfo - < {output8Path}) "
+                    f"> {output9Path}", 
+                altcmd=None, 
+                percent_difference=5, 
+                status_text="Editing header", 
+                finish_text="Finished editing image header",
+                skip=None),
 
-  PipelineStage(f"getinfo -a \"VIEW = -vta -view_angle_vertical {sessionData.view_angle_vertical} "
-          f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
-          f"< {output9Path} > {output10Path}", None, 5, "Adjusting for real viewing angle",
-          "Finished adjusting for real view angle"),
+  PipelineStage(cmd=f"getinfo -a \"VIEW = -vta "
+                    f"-view_angle_vertical {sessionData.view_angle_vertical} "
+                    f"-view_angle_horizontal {sessionData.view_angle_horizontal}\" "
+                    f"< {output9Path} > {output10Path}", 
+                altcmd=None, 
+                percent_difference=5, 
+                status_text="Adjusting for real viewing angle",
+                finish_text="Finished adjusting for real view angle",
+                skip=None),
 
-  PipelineStage(f"evalglare -V {output10Path}", None, 10, "Performing validity check",
-  "Finished output image validity check")
+  PipelineStage(cmd=f"evalglare -V {output10Path}", 
+                altcmd=None, 
+                percent_difference=10, 
+                status_text="Performing validity check",
+                finish_text="Finished output image validity check",
+                skip=None)
   ]
 
   for stage in pipeline:
+
     # Check if pipeline got cancelled in between steps
     if ( radiance_pipeline_cancelled == True):
       print("Cancelling active pipeline...\n")
