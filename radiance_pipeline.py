@@ -37,9 +37,11 @@ def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   global radiance_pipeline_status_text
   global radiance_pipeline_finished
+  global radiance_pipeline_cancelled
   radiance_pipeline_finished = False
   radiance_pipeline_percent = 0
   radiance_pipeline_status_text = "Setting up..."
+  radiance_pipeline_cancelled = False
 
   # Grab time pipeline session started for log filenames, only want 1 per session
   sessionTime = time.strftime("%Y%m%d-%H%M%S")
@@ -166,18 +168,41 @@ def radiance_pipeline( sessionData ):
   ]
 
   for stage in pipeline:
-    radiance_pipeline_status_text = stage.status_text
-    try:
-      if not stage.skip:
-        os.system(stage.cmd)
-      else:
-        os.system(stage.altcmd)
-    except Exception as e:
-      recordLog(sessionTime, "ERROR", e)
-      print(f"Radiance pipeline error: {e}")
-    finally:
-      print(stage.finishmsg)
-      radiance_pipeline_percent += stage.percent_difference
+    # Check if pipeline got cancelled in between steps
+    if ( radiance_pipeline_cancelled == True):
+      print("Cancelling active pipeline...\n")
 
-  radiance_pipeline_status_text = "Finished"
+      break
+
+
+    else:
+      radiance_pipeline_status_text = stage.status_text
+      try:
+        if not stage.skip:
+          os.system(stage.cmd)
+        else:
+          os.system(stage.altcmd)
+      except Exception as e:
+        recordLog(sessionTime, "ERROR", e)
+        print(f"Radiance pipeline error: {e}")
+      finally:
+        print(stage.finishmsg)
+        radiance_pipeline_percent += stage.percent_difference
+
+  # Set status text
+  if ( radiance_pipeline_cancelled == True):
+    radiance_pipeline_status_text = "Canceled"
+
+  else:
+    radiance_pipeline_status_text = "Finished"
+  
+  # Set finished flag
   radiance_pipeline_finished = True
+
+
+# Function to be called from ProgressWindow instance to halt the active pipeline.
+def cancel_pipeline():
+    global radiance_pipeline_cancelled
+    radiance_pipeline_cancelled = True
+
+    return
