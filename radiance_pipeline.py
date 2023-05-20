@@ -145,7 +145,8 @@ def radiance_pipeline( sessionData ):
                 finish_text="Finished cropping",
                 skip=False),
 
-  PipelineStage(cmd=f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
+  PipelineStage(cmd=f"pcomb -f {sessionData.path_vignetting} -e 'diameter={sessionData.diameter}' "
+                    f"{output3Path} > {output4Path}", 
                 altcmd=copy_cmd(osName, output3Path, output4Path), 
                 percent_difference=10, 
                 status_text="Correcting vignetting", 
