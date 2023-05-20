@@ -33,6 +33,11 @@ def radiance_pipeline_get_status_text():
 def radiance_pipeline_get_finished():
   return radiance_pipeline_finished
 
+def copy_cmd(os_name, src, dest):
+    if os_name == "nt":
+        return f"copy {src} {dest}"
+    return f"cp {src} {dest}"
+
 def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   global radiance_pipeline_status_text
@@ -141,7 +146,7 @@ def radiance_pipeline( sessionData ):
                 skip=False),
 
   PipelineStage(cmd=f"pcomb -f {sessionData.path_vignetting} {output3Path} > {output4Path}", 
-                altcmd=f"cp {output3Path} {output4Path}", 
+                altcmd=copy_cmd(osName, output3Path, output4Path), 
                 percent_difference=10, 
                 status_text="Correcting vignetting", 
                 finish_text="Finished correcting vignetting", 
@@ -156,21 +161,21 @@ def radiance_pipeline( sessionData ):
                 skip=False),
 
   PipelineStage(cmd=f"pcomb -f {sessionData.path_fisheye} {output5Path} > {output6Path}", 
-                altcmd=f"cp {output5Path} {output6Path}", 
+                altcmd=copy_cmd(osName, output5Path, output6Path), 
                 percent_difference=10, 
                 status_text="Adjusting fisheye", 
                 finish_text="Finished adjusting fisheye",
                 skip=sessionData.path_fisheye is None),
 
   PipelineStage(cmd=f"pcomb -f {sessionData.path_ndfilter} {output6Path} > {output7Path}",
-                altcmd=f"cp {output6Path} {output7Path}", 
+                altcmd=copy_cmd(osName, output6Path, output7Path), 
                 percent_difference=10, 
                 status_text="Correcting neutral density filter",
                 finish_text="Finished correcting neutral density filter",
                 skip=sessionData.path_ndfilter is None),
 
   PipelineStage(cmd=f"pcomb -h -f {sessionData.path_calfact} {output7Path} > {output8Path}",
-                altcmd=f"cp {output7Path} {output8Path}", 
+                altcmd=copy_cmd(osName, output7Path, output8Path),
                 percent_difference=10, 
                 status_text="Performing photometric adjustment", 
                 finish_text="Finished photometric adjustment",
@@ -242,3 +247,5 @@ def cancel_pipeline():
     radiance_pipeline_cancelled = True
 
     return
+
+
