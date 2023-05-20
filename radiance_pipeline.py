@@ -38,6 +38,12 @@ def copy_cmd(os_name, src, dest):
         return f"copy {src} {dest}"
     return f"cp {src} {dest}"
 
+def vignetting_cmd(os_name, src, dest, sessionData):
+    if os_name == "nt":
+        return f"pcomb -f {sessionData.path_vignetting} {src} > {dest}"
+    return (f"pcomb -f {sessionData.path_vignetting} -e 'diameter={sessionData.diameter}' "
+            f"{src} > {dest}")
+
 def radiance_pipeline( sessionData ):
   global radiance_pipeline_percent
   global radiance_pipeline_status_text
@@ -145,8 +151,7 @@ def radiance_pipeline( sessionData ):
                 finish_text="Finished cropping",
                 skip=False),
 
-  PipelineStage(cmd=f"pcomb -f {sessionData.path_vignetting} -e 'diameter={sessionData.diameter}' "
-                    f"{output3Path} > {output4Path}", 
+  PipelineStage(cmd=vignetting_cmd(osName, output3Path, output4Path, sessionData),
                 altcmd=copy_cmd(osName, output3Path, output4Path), 
                 percent_difference=10, 
                 status_text="Correcting vignetting", 
