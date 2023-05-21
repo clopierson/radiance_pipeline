@@ -26,7 +26,7 @@ class PipelineStage:
     '''
     cmd: str
     altcmd: str
-    percent_difference: int
+    percent_set: int
     status_text: str
     finish_text: str
     skip: bool = False
@@ -142,14 +142,14 @@ PipelineStage(cmd=f"hdrgen {' '.join(session_data.paths_ldr)} -o {output_path[1]
               f" -r {session_data.path_rsp_fn} -a -e -f -g",
               altcmd=f"hdrgen {' '.join(session_data.paths_ldr)} -o {output_path[1]}"
               f" -a -e -f -g",
-              percent_difference = 5,
+              percent_set = 30,
               status_text="Merging exposures (may take a while)",
               finish_text="Finished merging exposures",
               skip=session_data.path_rsp_fn is None),
 
 PipelineStage(cmd= f"ra_xyze -r -o {output_path[1]} > {output_path[2]}",
               altcmd=None,
-              percent_difference=10,
+              percent_set=35,
               status_text="Nullifying exposures",
               finish_text="Finished nullifying exposures",
               skip=False),
@@ -158,14 +158,14 @@ PipelineStage(cmd=f"pcompos -x {session_data.diameter} -y {session_data.diameter
                   f"{output_path[2]} -{session_data.crop_x_left} "
                   f"-{session_data.crop_y_down}, > {output_path[3]}",
               altcmd=None,
-              percent_difference=10,
+              percent_set=40,
               status_text="Cropping",
               finish_text="Finished cropping",
               skip=False),
 
 PipelineStage(cmd=vignetting_cmd(os_name, output_path[3], output_path[4], session_data),
               altcmd=copy_cmd(os_name, output_path[3], output_path[4]),
-              percent_difference=10,
+              percent_set=60,
               status_text="Correcting vignetting",
               finish_text="Finished correcting vignetting",
               skip=session_data.path_vignetting is None),
@@ -173,14 +173,14 @@ PipelineStage(cmd=vignetting_cmd(os_name, output_path[3], output_path[4], sessio
 PipelineStage(cmd=f"pfilt -1 -x {session_data.target_x_resolution} -y "
                   f"{session_data.target_y_resolution} {output_path[4]} > {output_path[5]}",
               altcmd=None,
-              percent_difference=10,
+              percent_set=65,
               status_text="Resizing",
               finish_text="Finished resizing",
               skip=False),
 
 PipelineStage(cmd=f"pcomb -f {session_data.path_fisheye} {output_path[5]} > {output_path[6]}",
               altcmd=copy_cmd(os_name, output_path[5], output_path[6]),
-              percent_difference=10,
+              percent_set=70,
               status_text="Adjusting fisheye",
               finish_text="Finished adjusting fisheye",
               skip=session_data.path_fisheye is None),
@@ -188,7 +188,7 @@ PipelineStage(cmd=f"pcomb -f {session_data.path_fisheye} {output_path[5]} > {out
 PipelineStage(cmd=f"pcomb -f {session_data.path_ndfilter} {output_path[6]} > "
                   f"{output_path[7]}",
               altcmd=copy_cmd(os_name, output_path[6], output_path[7]),
-              percent_difference=10,
+              percent_set=75,
               status_text="Correcting neutral density filter",
               finish_text="Finished correcting neutral density filter",
               skip=session_data.path_ndfilter is None),
@@ -196,7 +196,7 @@ PipelineStage(cmd=f"pcomb -f {session_data.path_ndfilter} {output_path[6]} > "
 PipelineStage(cmd=f"pcomb -h -f {session_data.path_calfact} {output_path[7]} > "
                   f"{output_path[8]}",
               altcmd=copy_cmd(os_name, output_path[7], output_path[8]),
-              percent_difference=10,
+              percent_set=80,
               status_text="Performing photometric adjustment",
               finish_text="Finished photometric adjustment",
               skip=session_data.path_calfact is None),
@@ -204,7 +204,7 @@ PipelineStage(cmd=f"pcomb -h -f {session_data.path_calfact} {output_path[7]} > "
 PipelineStage(cmd=f"(getinfo < {output_path[8]} | sed \"/VIEW/d\" && getinfo - < "
                   f"{output_path[8]}) > {output_path[9]}",
               altcmd=None,
-              percent_difference=5,
+              percent_set=85,
               status_text="Editing header",
               finish_text="Finished editing image header",
               skip=None),
@@ -214,14 +214,14 @@ PipelineStage(cmd=f"getinfo -a \"VIEW = -vta "
                   f"-view_angle_horizontal {session_data.view_angle_horizontal}\" "
                   f"< {output_path[9]} > {output_path[10]}",
               altcmd=None,
-              percent_difference=5,
+              percent_set=90,
               status_text="Adjusting for real viewing angle",
               finish_text="Finished adjusting for real view angle",
               skip=None),
 
 PipelineStage(cmd=f"evalglare -V {output_path[10]}",
               altcmd=None,
-              percent_difference=10,
+              percent_set=100,
               status_text="Performing validity check",
               finish_text="Finished output image validity check",
               skip=None)
@@ -249,7 +249,7 @@ PipelineStage(cmd=f"evalglare -V {output_path[10]}",
             radiance_pipeline_cancelled = True
         finally:
             print(stage.finish_text)
-            radiance_pipeline_percent += stage.percent_difference
+            radiance_pipeline_percent = stage.percent_set
 
     # Set status text
     if radiance_pipeline_cancelled:
