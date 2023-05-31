@@ -39,17 +39,20 @@ def radiance_pipeline_get_percent():
     '''
     return radiance_pipeline_percent
 
+
 def radiance_pipeline_get_status_text():
     '''
     Getter for the status text global. Use in threads.
     '''
     return radiance_pipeline_status_text
 
+
 def radiance_pipeline_get_finished():
     '''
     Getter for the finished bool global. Use in threads.
     '''
     return radiance_pipeline_finished
+
 
 def copy_cmd(os_name, src, dest):
     '''
@@ -58,6 +61,7 @@ def copy_cmd(os_name, src, dest):
     if os_name == "nt":
         return f"copy {src} {dest}"
     return f"cp {src} {dest}"
+
 
 def vignetting_cmd(os_name, src, dest, session_data):
     '''
@@ -68,6 +72,7 @@ def vignetting_cmd(os_name, src, dest, session_data):
         return f"pcomb -f {session_data.path_vignetting} {src} > {dest}"
     return (f"pcomb -f {session_data.path_vignetting} -e 'diameter={session_data.diameter}' "
             f"{src} > {dest}")
+
 
 def clear_temp(output_path):
     '''
@@ -88,12 +93,14 @@ def clear_temp(output_path):
     finally:
         pass
 
+
 def cancel_pipeline():
     '''
     Cancel pipeline in-between stages before it's fully finished. Use in thread.
     '''
     global radiance_pipeline_cancelled
     radiance_pipeline_cancelled = True
+
 
 def radiance_pipeline(session_data: RadianceData):
     '''
