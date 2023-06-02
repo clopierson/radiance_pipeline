@@ -13,11 +13,15 @@ from .radiance_data import RadianceData
 # from submodules.radiance_pipeline.logs import recordLog
 
 
+rp = __import__(__name__)
+
+
 radiance_pipeline_percent: int
 radiance_pipeline_status_text: str
 radiance_pipeline_finished: bool
 radiance_pipeline_cancelled: bool
 radiance_pipeline_error: bool
+
 
 @dataclass
 class PipelineStage:
@@ -31,7 +35,6 @@ class PipelineStage:
     finish_text: str
     skip: bool = False
 
-rp = __import__(__name__)
 
 def radiance_pipeline_get_percent():
     '''
@@ -102,6 +105,31 @@ def cancel_pipeline():
     radiance_pipeline_cancelled = True
 
 
+def merge_cmd(session_data: RadianceData, alt: bool, dest: str) -> str:
+    '''
+    Returns the command to merge based on session_data.
+    '''
+    cmd_merge = session_data.cmd_merge
+    
+    # Automatically set based on 
+    if cmd_merge is None:
+        suffix = Path(session_data.paths_ldr[0]).suffix.lower()
+        if suffix == ".cr2":
+            cmd_merge = "raw2hdr"
+        if suffix == ".jpg":
+            cmd_merge = "hdrgen"
+
+    if cmd_merge == "hdrgen":
+        if alt:
+            return (f"hdrgen {' '.join(session_data.paths_ldr)} -o {dest}"
+                    f" -r {session_data.path_rsp_fn} -a -e -f -g")
+        else:
+            return (f"hdrgen {' '.join(session_data.paths_ldr)} -o {dest}"
+                    f" -a -e -f -g")
+    if cmd_merge == "raw2hdr":
+        return (f"raw2hdr -o {dest} {' '.join(session_data.paths_ldr)}")
+        
+
 def radiance_pipeline(session_data: RadianceData):
     '''
     Main action for the module
@@ -145,10 +173,8 @@ def radiance_pipeline(session_data: RadianceData):
     clear_temp(output_path)
 
     pipeline = [
-PipelineStage(cmd=f"hdrgen {' '.join(session_data.paths_ldr)} -o {output_path[1]}"
-              f" -r {session_data.path_rsp_fn} -a -e -f -g",
-              altcmd=f"hdrgen {' '.join(session_data.paths_ldr)} -o {output_path[1]}"
-              f" -a -e -f -g",
+PipelineStage(cmd=merge_cmd(session_data, alt=False, dest=output_path[1]),
+              altcmd=merge_cmd(session_data, alt=True, dest=output_path[1]),
               percent_set = 30,
               status_text="Merging exposures (may take a while)",
               finish_text="Finished merging exposures",
